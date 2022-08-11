@@ -7,16 +7,16 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Objects;
 
-public class server extends Thread{
+public class server{
   static ServerSocket serverSocket = null;
-  static Socket c_socket;
+  static Socket socket;
   static InetAddress inetAddress = null;
   public static void main(String[] args) throws IOException {
     if (hasNotArgs(args)){
       System.out.println("Usage: server [option] [hostname] [port]\n Options: \n -l  <port>");
     }
     else{
-      if(Objects.equals(args[0], "-1")) {
+      if (Objects.equals(args[0], "-l")) {
         int portNum = Integer.parseInt(args[1]);
 
         try {
@@ -24,62 +24,43 @@ public class server extends Thread{
         } catch (IOException e) {
           System.out.println("Port 값이 올바르지 않습니다.");
         }
-        c_socket = serverSocket.accept();
+        socket = serverSocket.accept();
       } else{
         try{
           client(args);
         } catch (IOException ignored){}
       }
-      RecieveThread recieveThread = new RecieveThread();
-      recieveThread.setSocket(c_socket);
+    ReceiveThread receiveThread = new ReceiveThread();
+    receiveThread.setSocket(socket);
 
-      SendThread sendThread = new SendThread();
-      sendThread.setSocket(c_socket);
+    SendThread sendThread = new SendThread();
+    sendThread.setSocket(socket);
 
-      recieveThread.start();
-      sendThread.start();
-
+    sendThread.start();
+    receiveThread.start();
 
     }
   }
   private static void client(String[] args) throws IOException {
     inetAddress = InetAddress.getByName(args[0]);
     int port = Integer.parseInt(args[1]);
-    c_socket = new Socket(inetAddress, port);
+    socket = new Socket(inetAddress, port);
   }
   private static boolean hasNotArgs(String[] args) {
     return args.length == 0;
   }
-
-  @Override
-  public void run(){
-    super.run();
-    try {
-      BufferedReader tmpbuf = new BufferedReader(new InputStreamReader(System.in));
-      BufferedReader tmpbuf2 = new BufferedReader(new InputStreamReader(c_socket.getInputStream()));
-      PrintWriter sendWriter = new PrintWriter(c_socket.getOutputStream());
-      String sendString;
-      String receiveString;
-      while (true){
-        receiveString = tmpbuf2.readLine();
-        System.out.println(receiveString);
-        sendString = tmpbuf.readLine();
-        sendWriter.println(sendString);
-        sendWriter.flush();
-      }
-    }catch (IOException e){}
-  }
+  
 }
 
 class SendThread extends Thread{
 
-  private Socket m_Socket;
+  Socket socket;
   @Override
   public void run(){
     super.run();
     try{
       BufferedReader tmpbuf = new BufferedReader(new InputStreamReader(System.in));
-      PrintWriter sendWriter = new PrintWriter(m_Socket.getOutputStream());
+      PrintWriter sendWriter = new PrintWriter(socket.getOutputStream());
       String sendString;
 
       while(true){
@@ -94,30 +75,30 @@ class SendThread extends Thread{
   }
 
   public void setSocket(Socket _socket){
-    m_Socket = _socket;
+    socket = _socket;
   }
 }
 
-class RecieveThread extends Thread{
-  private Socket m_Socket;
+class ReceiveThread extends Thread{
+  Socket socket;
 
   @Override
   public void run(){
     super.run();
 
     try{
-      BufferedReader tmpbuf = new BufferedReader(new InputStreamReader(System.in));
+      BufferedReader tmpbuf = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
-      String recieveString;
+      String receiveString;
 
       while(true){
-        recieveString = tmpbuf.readLine();
+        receiveString = tmpbuf.readLine();
 
-        if(recieveString == null){
+        if(receiveString == null){
           System.out.println("상대방 연결이 끊겼습니다.");
           break;
         } else{
-          System.out.println("상대방 : " + recieveString);
+          System.out.println("상대방 : " + receiveString);
         }
       }
       tmpbuf.close();
@@ -128,6 +109,6 @@ class RecieveThread extends Thread{
   }
 
   public void setSocket(Socket _Socket){
-    m_Socket = _Socket;
+    socket = _Socket;
   }
 }
